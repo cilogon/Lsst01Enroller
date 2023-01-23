@@ -19,6 +19,18 @@ class Lsst01Enroller extends AppModel {
       'rule' => 'numeric',
       'required' => true,
       'allowEmpty' => false
+    ),
+    'pending_approval_redirect' => array(
+      'rule' => array('custom', '/^https?:\/\/.*/'),
+      'required' => true,
+      'allowEmpty' => false,
+      'message' => 'HTTPS URL is required',
+    ),
+    'pending_confirm_redirect' => array(
+      'rule' => array('custom', '/^https?:\/\/.*/'),
+      'required' => true,
+      'allowEmpty' => false,
+      'message' => 'HTTPS URL is required',
     )
   );
 
@@ -30,5 +42,4 @@ class Lsst01Enroller extends AppModel {
   public function cmPluginMenus() {
     return array();
   }
-
 }

@@ -9,6 +9,8 @@
         <field name="co_enrollment_flow_wedge_id" type="I">
             <constraint>REFERENCES cm_co_enrollment_flow_wedges(id)</constraint>
         </field>
+        <field name="pending_approval_redirect" type="C" size="256" />
+        <field name="pending_confirm_redirect" type="C" size="256" />
         <field name="created" type="T" />
         <field name="modified" type="T" />
         <field name="revision" type="I" />
