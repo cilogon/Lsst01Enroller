@@ -147,6 +147,7 @@ class Lsst01EnrollerCoPetitionsController extends CoPetitionsController {
     $args['contain']['OrgIdentity']['CoPetition']['EnrolleeCoPerson'] = array();
     $args['contain']['OrgIdentity']['CoPetition']['EnrolleeCoPerson'][] = 'Name';
     $args['contain']['OrgIdentity']['CoPetition']['EnrolleeCoPerson'][] = 'EmailAddress';
+    $args['contain']['OrgIdentity']['CoPetition']['EnrolleeCoPerson'][] = 'Identifier';
 
     $identifiers = $this->CoPetition->Co->OrgIdentity->Identifier->find('all', $args);
     $this->log("Start: found existing Identifier objects " . print_r($identifiers, true));
@@ -162,7 +163,7 @@ class Lsst01EnrollerCoPetitionsController extends CoPetitionsController {
 
     $args = array();
     $args['conditions']['Lsst01Enroller.co_enrollment_flow_wedge_id'] = $efwid;
-    $args['contain'] = false;
+    $args['contain']['CoEnrollmentFlowWedge']['CoEnrollmentFlow'] = 'CoEnrollmentFlowWedge';
     
     $cfg = $this->Lsst01Enroller->find('first', $args);
     $this->log("Start: plugin configuration is " . print_r($cfg, true));
@@ -228,6 +229,53 @@ class Lsst01EnrollerCoPetitionsController extends CoPetitionsController {
             $this->redirect($url);
           } else {
             $this->redirect($cfg['Lsst01Enroller']['pending_confirm_redirect']);
+          }
+        }
+
+        // Confirmed status means the user has already confirmed their email
+        // address and was probably presented with the form to collect a username
+        // but then the flow stopped for some reason. Check to see if there is
+        // no UID attached to the CO Person record and if not redirect to
+        // the plugin so they can set it.
+        if($status == StatusEnum::Confirmed) {
+          $uidExists = false;
+          foreach($coPerson['Identifier'] as $coPersonIdentifier) {
+            if($coPersonIdentifier['type'] == IdentifierEnum::UID) {
+              $uidExists = true;
+              break;
+            }
+          }
+
+          if(!$uidExists) {
+            $petition = $identifier['OrgIdentity']['CoPetition'][0];
+            $enrolleeToken = $petition['enrollee_token'];
+            $petitionId = $petition['id'];
+
+            // We need to direct into the IdentifierEnroller plugin, not
+            // this plugin, so we need to find the enrollment flow wedge
+            // ID for the IdentifierEnroller plugin.
+            $identifierEnrollerEfwid = null;
+            if(!empty($cfg['CoEnrollmentFlowWedge']['CoEnrollmentFlow']['CoEnrollmentFlowWedge'])) {
+              $wedges = $cfg['CoEnrollmentFlowWedge']['CoEnrollmentFlow']['CoEnrollmentFlowWedge'];
+              foreach($wedges as $wedge) {
+                if($wedge['plugin'] == 'IdentifierEnroller') {
+                  $identifierEnrollerEfwid = $wedge['id'];
+                  break;
+                }
+              }
+            }
+
+            if($identifierEnrollerEfwid) {
+              $url = array();
+              $url['plugin'] = 'identifier_enroller';
+              $url['controller'] = 'identifier_enroller_co_petitions';
+              $url['action'] = 'collectIdentifier';
+              $url[] = $petitionId;
+              $url['efwid'] = $identifierEnrollerEfwid;
+              $url['token'] = $enrolleeToken;
+
+              $this->redirect($url);
+            }
           }
         }
       }
