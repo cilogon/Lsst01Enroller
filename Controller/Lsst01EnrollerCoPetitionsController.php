@@ -25,6 +25,7 @@ class Lsst01EnrollerCoPetitionsController extends CoPetitionsController {
   public $name = "Lsst01EnrollerCoPetitions";
   public $uses = array(
     "CoPetition",
+    "AttributeEnumeration",
     "Lsst01Enroller.Lsst01Enroller"
   );
 
